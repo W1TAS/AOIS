@@ -70,8 +70,6 @@ class BinaryOperations:
         if carry:
             result.append('1')
         result = ''.join(reversed(result))  # Обрезка лишнего бита
-        if (len(result) > len(bin1)):
-            print(len(result))
         return result
 
     @staticmethod

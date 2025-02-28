@@ -1,6 +1,6 @@
 import sys
-from BinaryOperations import BinaryOperations
-from IEEE754Operations import IEEE754Operations
+from lab1.classes.BinaryOperations import BinaryOperations
+from lab1.classes.IEEE754Operations import IEEE754Operations
 
 
 def main():
@@ -47,8 +47,10 @@ def main():
         elif choice == '3':
             ieee_str = input("Введите 32-битную строку в формате IEEE754: ")
             mantissa, exponent = IEEE754Operations.ieee754_to_binary_exp(ieee_str)
+            decimal = IEEE754Operations.ieee754_to_float(ieee_str)
             print(f"Мантисса: {mantissa}")
             print(f"Экспонента: {exponent}")
+            print(f"Десятичное представление: {decimal}")
 
         elif choice == '4':
             x = input("Введите первое число в формате IEEE754: ")
@@ -56,7 +58,9 @@ def main():
 
 
             x_m, x_e = IEEE754Operations.ieee754_to_binary_exp(IEEE754Operations.float_to_ieee754(float(x)))
+            print(x_m, x_e)
             y_m, y_e = IEEE754Operations.ieee754_to_binary_exp(IEEE754Operations.float_to_ieee754(float(y)))
+            print(y_m, y_e)
             print("Результат сложения:", IEEE754Operations.add_ieee754(x_m, x_e, y_m, y_e))
 
             print(IEEE754Operations.ieee754_to_float(IEEE754Operations.add_ieee754(x_m, x_e, y_m, y_e)))
