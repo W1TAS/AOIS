@@ -24,22 +24,22 @@ def main():
         elif choice == '2':
             a = int(input("Введите первое число: "))
             b = int(input("Введите второе число: "))
-            a_bin = BinaryOperations.int_to_additional_code(a)
-            b_bin = BinaryOperations.int_to_additional_code(b)
+            a_binary = BinaryOperations.int_to_additional_code(a)
+            b_binary = BinaryOperations.int_to_additional_code(b)
 
-            print(a_bin)
-            print(b_bin)
+            print(a_binary)
+            print(b_binary)
 
-            add_res = BinaryOperations.add_additional(a_bin, b_bin)
-            sub_res = BinaryOperations.binary_subtraction(a_bin, b_bin)
-            print("Результат сложения:",add_res, BinaryOperations.additional_to_decimal(add_res))
-            print("Результат вычитания:",sub_res, BinaryOperations.additional_to_decimal(sub_res))
+            add_result = BinaryOperations.add_additional(a_binary, b_binary)
+            substitution_result = BinaryOperations.binary_subtraction(a_binary, b_binary)
+            print("Результат сложения:",add_result, BinaryOperations.additional_to_decimal(add_result))
+            print("Результат вычитания:",substitution_result, BinaryOperations.additional_to_decimal(substitution_result))
 
-            a_dir = BinaryOperations.int_to_direct_code(a)
-            b_dir = BinaryOperations.int_to_direct_code(b)
+            a_direct = BinaryOperations.int_to_direct_code(a)
+            b_direct = BinaryOperations.int_to_direct_code(b)
 
-            mult_res = BinaryOperations.binary_multiplication(a_dir, b_dir)
-            div_res = BinaryOperations.binary_division(a_dir,b_dir, 5)
+            mult_res = BinaryOperations.binary_multiplication(a_direct, b_direct)
+            div_res = BinaryOperations.binary_division(a_direct, b_direct, 5)
 
             print("Результат умножения", mult_res, BinaryOperations.direct_to_decimal(mult_res))
             print("Результат деления", div_res, BinaryOperations.bin_frac_to_dec_frac(div_res))
@@ -56,15 +56,18 @@ def main():
             x = input("Введите первое число в формате IEEE754: ")
             y = input("Введите второе число в формате IEEE754: ")
 
+            ieee_x = IEEE754Operations.float_to_ieee754(float(x))
+            ieee_y = IEEE754Operations.float_to_ieee754(float(y))
 
-            x_m, x_e = IEEE754Operations.ieee754_to_binary_exp(IEEE754Operations.float_to_ieee754(float(x)))
-            print(x_m, x_e)
-            y_m, y_e = IEEE754Operations.ieee754_to_binary_exp(IEEE754Operations.float_to_ieee754(float(y)))
-            print(y_m, y_e)
-            print("Результат сложения:", IEEE754Operations.add_ieee754(x_m, x_e, y_m, y_e))
+            print(ieee_x)
+            print(ieee_y)
 
-            print(IEEE754Operations.ieee754_to_float(IEEE754Operations.add_ieee754(x_m, x_e, y_m, y_e)))
-            # print(IEEE754Operations.)
+            x_mantissa, x_exponent = IEEE754Operations.ieee754_to_binary_exp(ieee_x)
+            y_mantissa, y_exponent = IEEE754Operations.ieee754_to_binary_exp(ieee_y)
+
+            print("Результат сложения:", IEEE754Operations.add_ieee754(x_mantissa, x_exponent, y_mantissa, y_exponent))
+
+            print(IEEE754Operations.ieee754_to_float(IEEE754Operations.add_ieee754(x_mantissa, x_exponent, y_mantissa, y_exponent)))
 
         elif choice == '5':
             print("Выход из программы.")
