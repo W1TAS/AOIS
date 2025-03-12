@@ -74,6 +74,3 @@ class TestLogicExpressions(unittest.TestCase):
             sys.stdout = original_stdout
         self.assertEqual(captured_output.getvalue(), expected_output)
 
-
-if __name__ == "__main__":
-    unittest.main()
