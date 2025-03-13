@@ -22,6 +22,7 @@ class LogicExpressions:
                 .replace('¬', ' not ')
                 .replace('&', ' and ')
                 .replace('∧', ' and ')
+                .replace('^', ' and ')
                 .replace('|', ' or ')
                 .replace('∨', ' or ')
                 .replace('->', ' <= ')
