@@ -10,7 +10,7 @@ class CalculationMinimizer:
         self.is_dnf = self.function.is_dnf  # True для СДНФ, False для СКНФ
 
     def minimize(self):
-        terms = self.function.terms.copy()
+        terms = self.initial_terms.copy()
         prev_terms = []
         stages = []
         stage = 0
@@ -22,26 +22,43 @@ class CalculationMinimizer:
             prev_terms = terms.copy()
             terms = self._perform_gluing(terms)
             stages.append(terms.copy())
-        if stages:
+        if stages and stages[-1] == terms:
             stages.pop()
 
-        # Итеративное удаление с приоритетом минимальности
-        final_implicants = terms.copy()
-        changed = True
-        while changed:
-            changed = False
-            # Сортируем по длине, чтобы сначала проверять более длинные
-            final_implicants.sort(key=len, reverse=True)
-            for i in range(len(final_implicants)):
-                implicant = final_implicants[i]
-                if self._is_redundant(implicant, final_implicants):
-                    final_implicants.pop(i)
-                    changed = True
-                    break
+        # Находим существенно необходимые импликанты и минимальное покрытие
+        final_implicants = sorted(terms.copy())
+        essential_implicants = self._find_essential_implicants(final_implicants)
+        remaining_terms = [t for t in self.initial_terms if not any(self._covers(e, t) for e in essential_implicants)]
+        remaining_implicants = [i for i in final_implicants if i not in essential_implicants]
 
-        result = self._format_result(final_implicants)
+        # Минимальное покрытие оставшихся термов
+        while remaining_terms and remaining_implicants:
+            best_implicant = None
+            max_coverage = 0
+            for imp in remaining_implicants:
+                covered = sum(1 for t in remaining_terms if self._covers(imp, t))
+                if covered > max_coverage or (covered == max_coverage and imp and len(imp) < len(best_implicant or "")):
+                    max_coverage = covered
+                    best_implicant = imp
+            if best_implicant:
+                essential_implicants.append(best_implicant)
+                remaining_implicants.remove(best_implicant)
+                remaining_terms = [t for t in remaining_terms if not self._covers(best_implicant, t)]
+            else:
+                break
+
+        result = self._format_result(essential_implicants)
         return {"stages": stages, "result": result}
 
+    def _find_essential_implicants(self, implicants):
+        essential = []
+        covered_terms = set()
+        for term in self.initial_terms:
+            covering_implicants = [imp for imp in implicants if self._covers(imp, term)]
+            if len(covering_implicants) == 1 and covering_implicants[0] not in essential:
+                essential.append(covering_implicants[0])
+                covered_terms.add(term)
+        return sorted(essential)  # Сортировка для стабильности
 
     def _perform_gluing(self, terms):
         new_terms = set()
