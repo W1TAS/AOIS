@@ -28,7 +28,7 @@ class TestMinimizers(unittest.TestCase):
                 "expression": "(¬a ∧ b ∧ c) ∨ (a ∧ ¬b ∧ ¬c) ∨ (a ∧ ¬b ∧ c) ∨ (a ∧ b ∧ ¬c) ∨ (a ∧ b ∧ c)",
                 "dnf_result": {"a", "bc"},  # Без ∧
                 "cnf_result": {"(a∨b)", "(a∨c)"}
-            },
+            }
             # # Пример 4: (a ∧ b) ∨ (¬a ∧ ¬b ∧ c) ∨ (a ∧ ¬c ∧ d)
             # {
             #     "expression": "(a ∧ b) ∨ (¬a ∧ ¬b ∧ c) ∨ (a ∧ ¬c ∧ d)",
