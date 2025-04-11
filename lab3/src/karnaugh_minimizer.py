@@ -1,4 +1,5 @@
 from src.boolean_function import BooleanFunction
+from itertools import combinations
 from src.utils import glue_terms, print_table
 import math
 import logging
@@ -23,6 +24,7 @@ class KarnaughMinimizer:
         self.cols = 2 ** math.ceil(self.num_vars / 2)
         self.rows = 2 ** (self.num_vars - math.ceil(self.num_vars / 2))
         self.map = None
+        self.is_dnf = self.function.is_dnf
         logger.info(f"Initialized with {self.num_vars} vars: rows={self.rows}, cols={self.cols}")
 
     def minimize(self):
@@ -35,12 +37,13 @@ class KarnaughMinimizer:
         col_gray = [''.join(map(str, code)) for code in generate_gray_code(col_vars)]
         groups = self._find_groups()
         result = self._terms_from_groups(groups)
+        real_result = self._format_result(result)
         logger.info(f"Minimization completed. Result: {result}")
         return {
             "table": self.map,
             "row_gray": row_gray,  # Код Грея для строк
             "col_gray": col_gray,  # Код Грея для столбцов
-            "result": result
+            "result": real_result
         }
 
     def _build_karnaugh_map(self):
@@ -79,7 +82,8 @@ class KarnaughMinimizer:
         all_targets = {(r, c) for r in range(self.rows) for c in range(self.cols) if kmap[r][c] == target}
         logger.info(f"Finding groups for target={target}. Targets: {all_targets}")
 
-        groups = []
+        # Шаг 1: Собираем все возможные группы
+        possible_groups = []
         for height in [2 ** i for i in range(int(math.log2(self.rows)) + 1)]:
             for width in [2 ** i for i in range(int(math.log2(self.cols)) + 1)]:
                 logger.debug(f"Checking size {height}x{width}")
@@ -98,27 +102,43 @@ class KarnaughMinimizer:
                             if not valid:
                                 break
                         if valid and cells.issubset(all_targets):
-                            groups.append((r_start, (r_start + height - 1) % self.rows,
-                                           c_start, (c_start + width - 1) % self.cols))
-                            logger.debug(f"Found group: {groups[-1]}")
+                            possible_groups.append((r_start, (r_start + height - 1) % self.rows,
+                                                    c_start, (c_start + width - 1) % self.cols))
+                            logger.debug(f"Found group: {possible_groups[-1]}")
 
-        groups.sort(key=lambda g: ((g[1] - g[0] + 1) % self.rows or self.rows) *
-                                  ((g[3] - g[2] + 1) % self.cols or self.cols), reverse=True)
-        logger.info(f"All groups sorted: {groups}")
+        logger.info(f"All possible groups: {possible_groups}")
 
-        essential = []
-        uncovered = all_targets.copy()
-        while uncovered and groups:
-            best_group = max(groups, key=lambda g: len(self._get_group_cells(g) & uncovered))
-            covered = self._get_group_cells(best_group)
-            if covered & uncovered:
-                essential.append(best_group)
-                uncovered -= covered
-                logger.info(f"Added group {best_group}. Uncovered: {uncovered}")
-            groups.remove(best_group)
+        # Шаг 2: Находим все покрытия с минимальным числом групп
+        min_count = float('inf')
+        candidate_covers = []
+        for r in range(1, len(possible_groups) + 1):
+            for combo in combinations(possible_groups, r):
+                covered = set()
+                for group in combo:
+                    covered.update(self._get_group_cells(group))
+                if all_targets.issubset(covered):
+                    candidate_covers.append(list(combo))
+                    min_count = r
+                    logger.info(f"Found cover with {r} groups: {combo}")
+            if candidate_covers:  # Прерываем, как только нашли покрытия с минимальным r
+                break
 
-        logger.info(f"Essential groups: {essential}")
-        return essential
+        # Шаг 3: Выбираем покрытие с минимальной суммарной длиной импликант
+        def get_terms_length(groups):
+            terms = self._terms_from_groups(groups)
+            return sum(len(term) for term in terms)
+
+        min_length = float('inf')
+        best_groups = None
+        for cover in candidate_covers:
+            length = get_terms_length(cover)
+            if length < min_length:
+                min_length = length
+                best_groups = cover
+                logger.info(f"Updated best cover: {best_groups}, length={min_length}")
+
+        logger.info(f"Minimal groups with shortest terms: {best_groups}")
+        return best_groups or []
 
     def _get_group_cells(self, group):
         r_start, r_end, c_start, c_end = group
@@ -185,3 +205,27 @@ class KarnaughMinimizer:
             terms.append(term)
             logger.info(f"Generated term: {term}")
         return terms
+
+    def _format_result(self, terms):
+        if self.is_dnf: return " ∨ ".join(terms)
+        else:
+            # Для СКНФ: обрабатываем термы с учётом их формата
+            formatted_terms = []
+            for term in terms:
+                if "∨" in term:
+                    # Если терм уже содержит дизъюнкцию, просто оборачиваем в скобки
+                    formatted_terms.append(f"({term})")
+                else:
+                    # Если терм без дизъюнкции (например, "a¬c"), преобразуем в "a∨¬c"
+                    literals = []
+                    i = 0
+                    while i < len(term):
+                        if term[i] == "¬":
+                            literals.append(term[i:i + 2])  # Берем ¬ и букву
+                            i += 2
+                        else:
+                            literals.append(term[i])  # Берем одиночную букву
+                            i += 1
+                    disjunction = "∨".join(literals)
+                    formatted_terms.append(f"({disjunction})")
+            return " ∧ ".join(formatted_terms)

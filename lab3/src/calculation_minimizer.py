@@ -10,21 +10,38 @@ class CalculationMinimizer:
         self.is_dnf = self.function.is_dnf  # True для СДНФ, False для СКНФ
 
     def minimize(self):
-        terms = self.function.terms
+        terms = self.function.terms.copy()
         prev_terms = []
+        stages = []
         stage = 0
-        while(terms!= prev_terms):
+        while set(terms) != set(prev_terms):
             stage += 1
-            prev_terms = terms
+            if stage > 100:
+                print("Прервано: слишком много итераций")
+                break
+            prev_terms = terms.copy()
             terms = self._perform_gluing(terms)
-            print(f"Этап - {stage}: {terms}")
-        necessary_terms = set()
-        for term in terms:
-            if self._is_redundant(term, set(terms)-{term}):
-                continue
-            else:
-                necessary_terms.add(term)
-        return self._format_result(necessary_terms)
+            stages.append(terms.copy())
+        if stages:
+            stages.pop()
+
+        # Итеративное удаление с приоритетом минимальности
+        final_implicants = terms.copy()
+        changed = True
+        while changed:
+            changed = False
+            # Сортируем по длине, чтобы сначала проверять более длинные
+            final_implicants.sort(key=len, reverse=True)
+            for i in range(len(final_implicants)):
+                implicant = final_implicants[i]
+                if self._is_redundant(implicant, final_implicants):
+                    final_implicants.pop(i)
+                    changed = True
+                    break
+
+        result = self._format_result(final_implicants)
+        return {"stages": stages, "result": result}
+
 
     def _perform_gluing(self, terms):
         new_terms = set()
@@ -40,9 +57,17 @@ class CalculationMinimizer:
         new_terms.update(remaining_terms)
         return list(new_terms)
 
-    def _is_redundant(self, implicant, other_implicants):
-        return any(self._covers(other_implicant, implicant) for other_implicant in other_implicants)
+    def _is_redundant(self, implicant, current_implicants):
+        # Создаём список импликант без текущей
+        remaining_implicants = [imp for imp in current_implicants if imp != implicant]
+        if not remaining_implicants:  # Если ничего не осталось, импликанта не лишняя
+            return False
 
+        # Проверяем, покрываются ли все исходные термы оставшимися импликантами
+        for term in self.initial_terms:
+            if not any(self._covers(other_imp, term) for other_imp in remaining_implicants):
+                return False  # Если хоть один терм не покрыт, импликанта нужна
+        return True  # Все исходные термы покрыты без этой импликанты
 
     def _covers(self, implicant, original_term):
         imp_bin = self.function.to_binary(implicant)

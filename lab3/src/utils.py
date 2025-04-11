@@ -40,10 +40,56 @@ def glue_terms(term1, term2, variables="abc"):
             result += f"¬{variables[i]}"
     return result
 
-def print_table(table, orig_terms, imp_terms):
-    print("Таблица покрытия:")
-    header = "Импликанты | " + " | ".join(orig_terms)
-    print(header)
-    for imp in imp_terms:
-        row = f"{imp:<10} | " + " | ".join("X" if t in table[imp] else " " for t in orig_terms)
-        print(row)
+
+def print_table(headers=None, rows=None, table=None, orig_terms=None, imp_terms=None):
+    """
+    Универсальная функция для вывода таблиц с динамическим выравниванием:
+    - Если переданы headers и rows, выводит карту Карно.
+    - Если переданы table, orig_terms и imp_terms, выводит таблицу покрытия.
+    """
+
+    def get_column_widths(data):
+        """Вычисляет максимальную длину текста в каждом столбце."""
+        widths = []
+        for col in range(len(data[0])):
+            widths.append(max(len(str(row[col])) for row in data))
+        return widths
+
+    if headers is not None and rows is not None:
+        # Вывод карты Карно
+        print("Карта Карно:")
+        all_data = [headers] + rows
+        widths = get_column_widths(all_data)
+
+        # Формируем заголовок
+        header = " " * widths[0] + " | " + " | ".join(str(h).rjust(widths[i + 1]) for i, h in enumerate(headers[1:]))
+        print(header)
+        print("-" * len(header))
+
+        # Выводим строки
+        for row in rows:
+            row_str = f"{str(row[0]):<{widths[0]}} | " + " | ".join(
+                str(cell).rjust(widths[i + 1]) for i, cell in enumerate(row[1:]))
+            print(row_str)
+
+    elif table is not None and orig_terms is not None and imp_terms is not None:
+        # Вывод таблицы покрытия
+        print("Таблица покрытия:")
+        # Подготовка данных: заголовки + строки
+        all_data = [["Импликанты"] + orig_terms] + [[imp] + ["X" if t in table[imp] else " " for t in orig_terms] for
+                                                    imp in imp_terms]
+        widths = get_column_widths(all_data)
+
+        # Формируем заголовок
+        header = " | ".join(str(col).ljust(widths[i]) for i, col in enumerate(all_data[0]))
+        print(header)
+        print("-" * len(header))
+
+        # Выводим строки
+        for row in all_data[1:]:
+            row_str = " | ".join(str(cell).ljust(widths[i]) for i, cell in enumerate(row))
+            print(row_str)
+
+    else:
+        raise ValueError(
+            "Неверные аргументы для print_table: укажите либо headers и rows, либо table, orig_terms и imp_terms")
