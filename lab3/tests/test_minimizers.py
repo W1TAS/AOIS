@@ -21,8 +21,7 @@ class TestMinimizers(unittest.TestCase):
                 "cnf_result": {"(a∨b)", "(a∨c)"}
             }
         ]
-        # Делаем глубокую копию, чтобы предотвратить изменения
-        self.test_cases = deepcopy(self.test_cases)
+
         self.minimizers = [
             ("CalculationMinimizer", CalculationMinimizer),
             ("TabularMinimizer", TabularMinimizer),
@@ -69,9 +68,6 @@ class TestMinimizers(unittest.TestCase):
                 minimizer = MinimizerClass(sknf_func)
                 result = minimizer.minimize()["result"]
                 result_set = self._split_result(result, is_dnf=False)
-                print(f"{name} result: {result_set}")
-                # Дополнительная проверка перед сравнением
-                print(f"Comparing with expected: {case['cnf_result']}")
                 self.assertEqual(result_set, case["cnf_result"],
                                  f"Failed CNF for {name} with expression {case['expression']}")
 

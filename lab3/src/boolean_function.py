@@ -36,5 +36,50 @@ class BooleanFunction:
                     binary += "X"
             return binary
 
+    def evaluate_term(self, assignment):
+        if self.is_dnf:
+            # Для ДНФ: функция истинна, если хотя бы один терм истинен
+            for term in self.terms:
+                term_result = True
+                i = 0
+                while i < len(term):
+                    if term[i] == "¬":
+                        var = term[i + 1]
+                        if var in assignment and assignment[var] != 0:  # ¬a истинно, если a=0
+                            term_result = False
+                            break
+                        i += 2
+                    else:
+                        var = term[i]
+                        if var in assignment and assignment[var] != 1:  # a истинно, если a=1
+                            term_result = False
+                            break
+                        i += 1
+                if term_result:
+                    return True
+            return False
+        else:
+            # Для КНФ: функция истинна, если все термы истинны
+            for term in self.terms:
+                term_result = False  # Для дизъюнкции терм истинен, если хотя бы один литерал истинен
+                i = 0
+                while i < len(term):
+                    if term[i] == "¬":
+                        var = term[i + 1]
+                        if var in assignment and assignment[var] == 0:  # ¬a истинно, если a=0
+                            term_result = True
+                            break
+                        i += 2
+                    else:
+                        var = term[i]
+                        if var in assignment and assignment[var] == 1:  # a истинно, если a=1
+                            term_result = True
+                            break
+                        i += 1
+                if not term_result:
+                    return False
+            return True
+
+
     def __str__(self):
         return " ∨ ".join(self.terms) if self.is_dnf else " ∧ ".join(self.terms)
