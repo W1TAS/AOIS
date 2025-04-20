@@ -102,7 +102,7 @@ class CalculationMinimizer:
                 if term:
                     literals = [lit for lit in term.split("∨") if lit]  # Разделяем на литералы
                     cleaned_term = "∧".join(literals)  # В ДНФ литералы в терме соединяются ∧
-                    cleaned_terms.append(f"({cleaned_term})")
+                    cleaned_terms.append(f"{cleaned_term}")
             return " ∨ ".join(cleaned_terms) if cleaned_terms else "0"
         else:
             # Для СКНФ: соединяем термы через ∧, каждый терм — дизъюнкция литералов
