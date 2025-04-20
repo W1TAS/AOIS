@@ -95,34 +95,33 @@ class CalculationMinimizer:
 
     def _format_result(self, terms):
         if self.is_dnf:
-            # Для ДНФ: соединяем термы через ∨, убираем лишние ∧
+            # Для ДНФ: просто соединяем термы через ∨
             cleaned_terms = []
             for term in terms:
-                term = term.replace("∧", "").replace("∨∨", "∨")  # Убираем ∧ и лишние ∨
+                # Убираем вложенные ∧, так как в ДНФ их быть не должно
+                term = term.replace("∧", "")
+                while "∨∨" in term:
+                    term = term.replace("∨∨", "∨")
                 if term:
-                    literals = [lit for lit in term.split("∨") if lit]  # Разделяем на литералы
-                    cleaned_term = "∧".join(literals)  # В ДНФ литералы в терме соединяются ∧
-                    cleaned_terms.append(f"({cleaned_term})")
+                    cleaned_terms.append(term)
             return " ∨ ".join(cleaned_terms) if cleaned_terms else "0"
         else:
-            # Для СКНФ: соединяем термы через ∧, каждый терм — дизъюнкция литералов
+            # Для СКНФ: обрабатываем термы с учётом их формата
             formatted_terms = []
             for term in terms:
-                # Убираем лишние ∨ и ∧
-                term = term.replace("∨∨", "∨").replace("∧", "")
+                # Убираем лишние ∨
+                while "∨∨" in term:
+                    term = term.replace("∨∨", "∨")
                 literals = []
                 i = 0
                 while i < len(term):
                     if term[i] == "¬":
                         literals.append(term[i:i + 2])  # Берем ¬ и букву
                         i += 2
-                    elif term[i].isalpha():
+                    else:
                         literals.append(term[i])  # Берем одиночную букву
                         i += 1
-                    else:
-                        i += 1  # Пропускаем лишние символы
                 literals = [lit for lit in literals if lit]  # Убираем пустые литералы
-                if literals:
-                    disjunction = "∨".join(literals)
-                    formatted_terms.append(f"({disjunction})")
+                disjunction = "∨".join(literals)
+                formatted_terms.append(f"({disjunction})")
             return " ∧ ".join(formatted_terms) if formatted_terms else "1"
