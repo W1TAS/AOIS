@@ -93,27 +93,35 @@ class CalculationMinimizer:
             if not (bit1 == bit2 or bit1 == "X"): return False
         return True
 
-
     def _format_result(self, terms):
-        if self.is_dnf: return " ∨ ".join(terms)
+        if self.is_dnf:
+            # Для ДНФ: просто соединяем термы через ∨
+            cleaned_terms = []
+            for term in terms:
+                # Убираем вложенные ∧, так как в ДНФ их быть не должно
+                term = term.replace("∧", "")
+                while "∨∨" in term:
+                    term = term.replace("∨∨", "∨")
+                if term:
+                    cleaned_terms.append(term)
+            return " ∨ ".join(cleaned_terms) if cleaned_terms else "0"
         else:
             # Для СКНФ: обрабатываем термы с учётом их формата
             formatted_terms = []
             for term in terms:
-                if "∨" in term:
-                    # Если терм уже содержит дизъюнкцию, просто оборачиваем в скобки
-                    formatted_terms.append(f"({term})")
-                else:
-                    # Если терм без дизъюнкции (например, "a¬c"), преобразуем в "a∨¬c"
-                    literals = []
-                    i = 0
-                    while i < len(term):
-                        if term[i] == "¬":
-                            literals.append(term[i:i + 2])  # Берем ¬ и букву
-                            i += 2
-                        else:
-                            literals.append(term[i])  # Берем одиночную букву
-                            i += 1
-                    disjunction = "∨".join(literals)
-                    formatted_terms.append(f"({disjunction})")
-            return " ∧ ".join(formatted_terms)
+                # Убираем лишние ∨
+                while "∨∨" in term:
+                    term = term.replace("∨∨", "∨")
+                literals = []
+                i = 0
+                while i < len(term):
+                    if term[i] == "¬":
+                        literals.append(term[i:i + 2])  # Берем ¬ и букву
+                        i += 2
+                    else:
+                        literals.append(term[i])  # Берем одиночную букву
+                        i += 1
+                literals = [lit for lit in literals if lit]  # Убираем пустые литералы
+                disjunction = "∨".join(literals)
+                formatted_terms.append(f"({disjunction})")
+            return " ∧ ".join(formatted_terms) if formatted_terms else "1"

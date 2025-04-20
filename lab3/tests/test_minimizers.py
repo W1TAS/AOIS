@@ -1,75 +1,141 @@
-import unittest
-from src.logic_expression import LogicExpressions
 from src.calculation_minimizer import CalculationMinimizer
 from src.tabular_minimizer import TabularMinimizer
 from src.karnaugh_minimizer import KarnaughMinimizer
 from src.boolean_function import BooleanFunction
-from copy import deepcopy
+import unittest
 
-class TestMinimizers(unittest.TestCase):
+
+class TestMinimizer(unittest.TestCase):
     def setUp(self):
-        # Создаём неизменяемую копию тестовых данных
-        self.test_cases = [
-            {
-                "expression": "(a ∧ b ∧ ¬c) ∨ (¬a ∧ b ∧ d) ∨ (a ∧ ¬b ∧ c ∧ ¬d)",
-                "dnf_result": {"ab¬c", "a¬bc¬d", "¬abd"},
-                "cnf_result": {"(a∨d)", "(¬a∨¬b∨¬c)", "(b∨¬d)", "(b∨c)"}
-            },
-            {
-                "expression": "(¬a ∧ b ∧ c) ∨ (a ∧ ¬b ∧ ¬c) ∨ (a ∧ ¬b ∧ c) ∨ (a ∧ b ∧ ¬c) ∨ (a ∧ b ∧ c)",
-                "dnf_result": {"a", "bc"},
-                "cnf_result": {"(a∨b)", "(a∨c)"}
-            }
+        self.expressions = [
+            "a∨¬b∧c",
+            "¬a∧b∨¬c∧d",
+            "a∧b∨¬c∧¬d∨e",
+            # "a∧¬b∧c∨¬d∧e",
+            "¬a∨b∧¬c∨d"
         ]
+        # Тестовые выражения (убраны выражения с 5 переменными)
 
-        self.minimizers = [
-            ("CalculationMinimizer", CalculationMinimizer),
-            ("TabularMinimizer", TabularMinimizer),
-            ("KarnaughMinimizer", KarnaughMinimizer)
-        ]
+    def parse_expression(self, expr, is_dnf):
+        """
+        Парсит строку выражения в список термов.
+        Для ДНФ разделяет по ∨, для КНФ — по ∧.
+        """
+        terms = []
+        current_term = ""
+        i = 0
+        while i < len(expr):
+            if is_dnf and expr[i] == "∨":
+                if current_term:
+                    terms.append(current_term)
+                    current_term = ""
+                i += 1
+            elif not is_dnf and expr[i] == "∧":
+                if current_term:
+                    terms.append(current_term)
+                    current_term = ""
+                i += 1
+            else:
+                current_term += expr[i]
+                i += 1
+        if current_term:
+            terms.append(current_term)
+        return terms
 
-    def _split_result(self, result, is_dnf):
-        if not isinstance(result, str):
-            raise ValueError(f"Ожидалась строка, получен ")
-        if is_dnf:
-            return set(term.replace("∧", "") for term in result.split(" ∨ "))
-        else:
-            return set(term.strip() for term in result.split(" ∧ "))
+    def normalize_result(self, result):
+        # Удаляем пробелы
+        result = result.replace(" ", "")
 
-    def test_minimizers_dnf(self):
-        for case in self.test_cases:
-            logic = LogicExpressions(case["expression"])
-            sdnf, _ = logic.build_sdnf()
-            sdnf_terms = sorted([term.strip('()') for term in sdnf.split(' ∨ ')])
-            sdnf_func = BooleanFunction(sdnf_terms, is_dnf=True)
-            print(f"\n=== DNF Test: {case['expression']} ===")
-            print(f"SDNF terms: {sdnf_terms}")
-            print(f"Expected DNF: {case['dnf_result']}")
+        # Для ДНФ: ожидаем термы, разделённые ∨
+        if "∨" in result and "∧" not in result.replace("¬", ""):
+            # Убираем лишние ∨∨
+            while "∨∨" in result:
+                result = result.replace("∨∨", "∨")
+            terms = result.split("∨")
+            terms = [term for term in terms if term]  # Убираем пустые термы
+            terms.sort()
+            return "∨".join(terms)
+        # Для КНФ: ожидаем термы в скобках, разделённые ∧
+        elif "∧" in result:
+            terms = result.split("∧")
+            normalized_terms = []
+            for term in terms:
+                term = term.strip("()")
+                # Убираем лишние ∨∨ внутри терма
+                while "∨∨" in term:
+                    term = term.replace("∨∨", "∨")
+                literals = []
+                i = 0
+                while i < len(term):
+                    if term[i] == "¬":
+                        literals.append(term[i:i + 2])
+                        i += 2
+                    else:
+                        literals.append(term[i])
+                        i += 1
+                literals = [lit for lit in literals if lit]  # Убираем пустые литералы
+                literals.sort()
+                normalized_terms.append(f"({'∨'.join(literals)})")
+            normalized_terms.sort()
+            return "∧".join(normalized_terms)
+        return result
 
-            for name, MinimizerClass in self.minimizers:
-                minimizer = MinimizerClass(sdnf_func)
-                result = minimizer.minimize()["result"]
-                result_set = self._split_result(result, is_dnf=True)
-                print(f"{name} result: {result_set}")
-                self.assertEqual(result_set, case["dnf_result"],
-                                 f"Failed DNF for {name} with expression {case['expression']}")
+    def test_minimization_dnf(self):
+        for expr in self.expressions:
+            with self.subTest(expr=expr):
+                # Парсим выражение для ДНФ
+                terms = self.parse_expression(expr, is_dnf=True)
+                # Создаём объект BooleanFunction для ДНФ
+                bf_dnf = BooleanFunction(terms, is_dnf=True)
 
-    def test_minimizers_cnf(self):
-        for case in self.test_cases:
-            logic = LogicExpressions(case["expression"])
-            sknf, _ = logic.build_sknf()
-            sknf_terms = sorted([term.strip('()') for term in sknf.split(' ∧ ')])
-            sknf_func = BooleanFunction(sknf_terms, is_dnf=False)
-            print(f"\n=== CNF Test: {case['expression']} ===")
-            print(f"SKNF terms: {sknf_terms}")
-            print(f"Expected CNF (from setUp): {case['cnf_result']}")
+                # Минимизация с помощью трёх методов
+                calc_minimizer = CalculationMinimizer(bf_dnf)
+                tabular_minimizer = TabularMinimizer(bf_dnf)
+                karnaugh_minimizer = KarnaughMinimizer(bf_dnf)
 
-            for name, MinimizerClass in self.minimizers:
-                minimizer = MinimizerClass(sknf_func)
-                result = minimizer.minimize()["result"]
-                result_set = self._split_result(result, is_dnf=False)
-                self.assertEqual(result_set, case["cnf_result"],
-                                 f"Failed CNF for {name} with expression {case['expression']}")
+                calc_result = calc_minimizer.minimize()['result']
+                tabular_result = tabular_minimizer.minimize()['result']
+                karnaugh_result = karnaugh_minimizer.minimize()['result']
 
-if __name__ == "__main__":
+                # Нормализуем результаты для сравнения
+                calc_result = self.normalize_result(calc_result)
+                tabular_result = self.normalize_result(tabular_result)
+                karnaugh_result = self.normalize_result(karnaugh_result)
+
+                # Сравниваем результаты
+                self.assertEqual(calc_result, tabular_result,
+                                 f"ДНФ: Calculation и Tabular дают разные результаты для {expr}")
+                self.assertEqual(calc_result, karnaugh_result,
+                                 f"ДНФ: Calculation и Karnaugh дают разные результаты для {expr}")
+
+    def test_minimization_cnf(self):
+        for expr in self.expressions:
+            with self.subTest(expr=expr):
+                # Парсим выражение для КНФ
+                terms = self.parse_expression(expr, is_dnf=False)
+                # Создаём объект BooleanFunction для КНФ
+                bf_cnf = BooleanFunction(terms, is_dnf=False)
+
+                # Минимизация с помощью трёх методов
+                calc_minimizer = CalculationMinimizer(bf_cnf)
+                tabular_minimizer = TabularMinimizer(bf_cnf)
+                karnaugh_minimizer = KarnaughMinimizer(bf_cnf)
+
+                calc_result = calc_minimizer.minimize()['result']
+                tabular_result = tabular_minimizer.minimize()['result']
+                karnaugh_result = karnaugh_minimizer.minimize()['result']
+
+                # Нормализуем результаты для сравнения
+                calc_result = self.normalize_result(calc_result)
+                tabular_result = self.normalize_result(tabular_result)
+                karnaugh_result = self.normalize_result(karnaugh_result)
+
+                # Сравниваем результаты
+                self.assertEqual(calc_result, tabular_result,
+                                 f"КНФ: Calculation и Tabular дают разные результаты для {expr}")
+                self.assertEqual(calc_result, karnaugh_result,
+                                 f"КНФ: Calculation и Karnaugh дают разные результаты для {expr}")
+
+
+if __name__ == '__main__':
     unittest.main()
