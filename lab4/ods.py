@@ -1,5 +1,5 @@
-from boolean_function import BooleanFunction
-from calculation_minimizer import CalculationMinimizer
+from src.boolean_function import BooleanFunction
+from src.calculation_minimizer import CalculationMinimizer
 
 # Таблица истинности для ОДС-3
 truth_table_data = [
@@ -13,16 +13,6 @@ truth_table_data = [
     (1, 1, 1, 1, 1)
 ]
 
-truth_table_d8421 = [
-    (0, 0, 0, 0, 0),  # A, B, Cin, S, Cout
-    (0, 0, 1, 1, 0),
-    (0, 1, 0, 1, 0),
-    (0, 1, 1, 0, 1),
-    (1, 0, 0, 1, 0),
-    (1, 0, 1, 0, 1),
-    (1, 1, 0, 0, 1),
-    (1, 1, 1, 1, 1)
-]
 
 def print_truth_table():
     """Выводит таблицу истинности для ОДС-3."""

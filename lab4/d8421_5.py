@@ -1,9 +1,9 @@
-from boolean_function import BooleanFunction
-from calculation_minimizer import CalculationMinimizer
+from src.boolean_function import BooleanFunction
+from src.calculation_minimizer import CalculationMinimizer
 
 # Таблица истинности для преобразователя Д8421 → Д8421+5
-# A, B, C, D — входы (были X3, X2, X1, X0)
-# W, X, Y, Z — выходы (были Y3, Y2, Y1, Y0)
+# A, B, C, D — входы
+# W, X, Y, Z — выходы
 truth_table_data = [
     (0, 0, 0, 0, 0, 1, 0, 1),  # 0 → 5
     (0, 0, 0, 1, 0, 1, 1, 0),  # 1 → 6
